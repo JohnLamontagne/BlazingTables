@@ -1,0 +1,104 @@
+﻿@typeparam TItem
+@inherits BlazingTableBase<TItem>
+@inject IJSRuntime jsRuntime;
+
+
+<CascadingValue Value="this">
+    @ChildContent
+    <table id="@this.Id" class="table table-striped table-bordered" cellspacing="0" width="100%">
+        <thead>
+            <tr>
+                @foreach (var column in _columns)
+                {
+                    <th class="th-sm">
+                        @column.Header
+                        @if (column.Filterable || column.Sortable)
+                        {
+                            <div class="dropdown float-right">
+                                <button class="btn dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                </button>
+                                <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                                    <a class="dropdown-item" href="#" @onclick="(() => HandleSortAZ(column))">Sort A-Z [Asc]</a>
+                                    <a class="dropdown-item" href="#" @onclick="(() => HandleSortZA(column))">Sort Z-A [Desc]</a>
+                                    <a class="dropdown-item" data-toggle="modal" data-target="#containsTextModal" @onclick="(() => curColFilterInput = column)">Contains</a>
+                                </div>
+                            </div>
+                        }
+                    </th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in this.FilteredData)
+            {
+                <tr>
+                    @foreach (var column in _columns)
+                    {
+                        <td>@column.Value.Invoke(row).ToString()</td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+</CascadingValue>
+
+<!-- Contains Text Modal -->
+<div class="modal fade" id="containsTextModal" tabindex="-1" role="dialog" aria-labelledby="containsTextModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Contains Text</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <label>Text: </label>
+                <input @bind="containsTextInput" />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal" @onclick="(() => { curColFilterInput = null; containsTextInput = string.Empty; })">Cancel</button>
+                <button type="button" class="btn btn-primary" data-dismiss="modal" @onclick="(() => OnContainsInputSubmit(curColFilterInput, containsTextInput))">Okay</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@code {
+    DataColumn<TItem> curColFilterInput = null;
+    string containsTextInput = "";
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public string Id { get; set; } = null!;
+
+    protected override void OnInitialized()
+    {
+        this.FilteredData = this.Data;
+    }
+
+    void OnContainsInputSubmit(DataColumn<TItem> column, string containsText)
+    {
+        this.HandleContains(curColFilterInput, containsTextInput);
+        containsTextInput = string.Empty;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await jsRuntime.InvokeAsync<Task>("initalizeTable", this.Id);
+
+        }
+    }
+
+    internal void AddColumn(DataColumn<TItem> column)
+    {
+        _columns.Add(column);
+        StateHasChanged();
+    }
+
+}

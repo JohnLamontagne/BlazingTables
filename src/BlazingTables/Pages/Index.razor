@@ -1,0 +1,36 @@
+﻿@using BlazingTables.Data;
+@page "/"
+
+<BlazingTable @ref="table" Id="testTable" TItem=BlazingTables.Data.Test
+              Data="@TestData">
+    <DataColumn TItem=BlazingTables.Data.Test Header="Name" Value="@((record) => record.Name)"></DataColumn>
+    <DataColumn TItem=BlazingTables.Data.Test Header="Age" Value="@((record) => record.Age)"></DataColumn>
+</BlazingTable>
+
+
+<button @onclick="HandleClick">Test</button>
+
+
+@code {
+    public List<Test> TestData { get; set; } = new List<Test>();
+    BlazingTable<Test> table;
+
+    protected override void OnInitialized()
+    {
+        this.TestData.Add(new Test() { Name = "E", Age = 4 });
+        this.TestData.Add(new Test() { Name = "D", Age = 2 });
+        this.TestData.Add(new Test() { Name = "C", Age = 55 });
+        this.TestData.Add(new Test() { Name = "B", Age = 1 });
+        this.TestData.Add(new Test() { Name = "A", Age = 23 });
+        this.TestData.Add(new Test() { Name = "A", Age = 33 });
+        this.TestData.Add(new Test() { Name = "A", Age = 2 });
+        this.TestData.Add(new Test() { Name = "A", Age = 44 });
+        this.TestData.Add(new Test() { Name = "A", Age = 12 });
+    }
+
+    private void HandleClick()
+    {
+        this.TestData.Add(new Test() { Name = "LOL", Age = 54 });
+        table.Update();
+    }
+}

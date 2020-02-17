@@ -1,0 +1,30 @@
+﻿@using BlazingTables.Utils; 
+@typeparam TItem
+
+@code {
+    [CascadingParameter]
+    private BlazingTable<TItem> Parent { get; set; }
+
+    [Parameter]
+    public string Header { get; set; }
+
+    [Parameter]
+    public Func<TItem, object> Value { get; set; }
+
+    [Parameter]
+    public bool Sortable { get; set; } = true;
+
+    [Parameter]
+    public bool Filterable { get; set; } = true;
+
+    public Func<object, ColumnFilterArgs, bool> Filter { get; set; }
+
+    public Sorting Sorting { get; set; } = Sorting.None;
+
+    public bool Sorted { get; protected set; }
+
+    protected override void OnInitialized()
+    {
+        this.Parent.AddColumn(this);
+    }
+}
