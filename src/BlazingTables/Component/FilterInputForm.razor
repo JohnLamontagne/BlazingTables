@@ -1,0 +1,100 @@
+﻿@using BlazingTables.Utils
+@using BlazingTables.Component.TableFilters
+@typeparam TItem
+
+<CascadingValue Value="this">
+    <div class="filform-container @(visible ? "filform-active" : string.Empty)">
+
+        <div class="filform-overlay" @onclick="HandleClose"></div>
+
+        <div class="filform-modal">
+            <div class="filform-header">
+                <h3 class="filform-title">@this.Title</h3>
+                <button type="button" class="filform-close">&times;</button>
+            </div>
+            <div class="filform-content">
+                @ChildContent
+                <div class="filform-footer">
+                    <button type="button" class="btn btn-primary" @onclick="HandleSubmit">Submit</button>
+                    <button type="button" class="btn btn-danger" @onclick="HandleClose">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</CascadingValue>
+
+@code {
+
+    private List<FilterInput<TItem>> inputBoxes = new List<FilterInput<TItem>>();
+    private bool visible;
+    private Action<FilterArgs> callback;
+
+    [CascadingParameter]
+    public TableFilter<TItem> Parent { get; set; }
+
+    [Parameter]
+    public EventHandler Closed { get; set; }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    [Parameter]
+    public string Title { get; set; }
+
+    public void Show(Action<FilterArgs> callback)
+    {
+        visible = true;
+        this.callback = callback;
+
+        StateHasChanged();
+    }
+
+    public void Hide()
+    {
+        visible = false;
+
+        StateHasChanged();
+    }
+
+    private void HandleClose()
+    {
+        this.Closed?.Invoke(this, new EventArgs());
+
+        foreach (var inputBox in inputBoxes)
+        {
+            inputBox.Value = string.Empty;
+        }
+
+        visible = false;
+        StateHasChanged();
+    }
+
+    private void HandleSubmit()
+    {
+        Dictionary<string, string> inputValues = new Dictionary<string, string>();
+
+        foreach (var inputBox in inputBoxes)
+        {
+            inputValues.Add(inputBox.FieldName, inputBox.Value);
+
+            inputBox.Value = string.Empty;
+        }
+
+        callback(new FilterArgs(inputValues));
+
+        visible = false;
+
+        StateHasChanged();
+    }
+
+    internal void AddFilterInput(FilterInput<TItem> input)
+    {
+        inputBoxes.Add(input);
+    }
+
+    protected override void OnInitialized()
+    {
+        this.Parent.RegisterInputForm(this);
+    }
+
+}

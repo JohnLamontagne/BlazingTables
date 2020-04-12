@@ -1,0 +1,8 @@
+﻿@using BlazingTables.Utils.Filters
+@typeparam TItem
+
+<TableFilter Name="Contains Text" TItem="TItem" FilterHandler="new ContainsTextFilterHandler<TItem>()">
+    <FilterInputForm TItem="TItem" Title="Contains Text">
+        <FilterInput TItem="TItem" FieldName="Contains"></FilterInput>
+    </FilterInputForm>
+</TableFilter>

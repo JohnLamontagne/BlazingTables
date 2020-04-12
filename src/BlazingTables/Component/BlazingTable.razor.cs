@@ -1,43 +1,48 @@
 ﻿using Microsoft.AspNetCore.Components;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Linq.Dynamic.Core;
-using BlazingTables.Utils;
-using System.Collections;
+using BlazingTables.Component.TableFilters;
+using System;
 
 namespace BlazingTables.Component
 {
-    public class BlazingTableBase<T> : ComponentBase
+    public class BlazingTableBase<TItem> : ComponentBase
     {
-        public IEnumerable<T> FilteredData { get; protected set; }
+        public IEnumerable<TItem> FilteredData { get; protected set; }
 
-        private List<T> _data;
+        protected List<IColumn<TItem>> columns = new List<IColumn<TItem>>();
 
-        protected List<DataColumn<T>> _columns = new List<DataColumn<T>>();
+        protected List<TableFilter<TItem>> filters = new List<TableFilter<TItem>>();
 
-        private Queue<DataColumn<T>> _orderedCols;
-        private Queue<Tuple<DataColumn<T>, ColumnFilterArgs>> _colFilters;
+        protected int curPage = 1;
+
+        private List<TItem> _data = new List<TItem>();
+
+        private Queue<DataColumn<TItem>> _orderedSortCols = new Queue<DataColumn<TItem>>();
+
+        /// <summary>
+        /// Event which provides the opportunity to custom handle data filtering & paging
+        /// by updating the <see cref="Data"/> field with the data which will be displayed in the table.
+        /// In this case, <see cref="Update"/> invocation is not required after setting <see cref="Data"/>.
+        /// </summary>
+        [Parameter]
+        public EventHandler<EventArgs> OnBeforeTableDataRead { get; set; }
 
         [Parameter]
-        public IReadOnlyList<T> Data 
-        { 
-            get => _data; 
-            set 
+        public IReadOnlyList<TItem> Data
+        {
+            get => _data;
+            set
             {
                 _data = value.ToList();
-            } 
+            }
         }
 
-        public BlazingTableBase()
-        {
-            _data = new List<T>();
-            _orderedCols = new Queue<DataColumn<T>>();
-            _colFilters = new Queue<Tuple<DataColumn<T>, ColumnFilterArgs>>();
-        }
+        [Parameter]
+        public int RowsPerPage { get; set; } = 25;
 
-        public void Remove(T row)
+        public void Remove(TItem row)
         {
             if (_data.Contains(row))
             {
@@ -47,7 +52,7 @@ namespace BlazingTables.Component
             }
         }
 
-        public void Add(T row)
+        public void Add(TItem row)
         {
             _data.Add(row);
 
@@ -59,45 +64,52 @@ namespace BlazingTables.Component
             this.UpdateFilteredData();
         }
 
-
-        protected void HandleSortAZ(DataColumn<T> column)
+        protected void HandleApplyFilterSubmit(TableFilter<TItem> filter, DataColumn<TItem> column)
         {
-            
-            column.Sorting = Sorting.Ascending;
-
-            if (!_orderedCols.Contains(column))
-                _orderedCols.Enqueue(column);
-
-            this.UpdateFilteredData();
-        }
-
-        protected void HandleSortZA(DataColumn<T> column)
-        {
-            column.Sorting = Sorting.Descending;
-
-            if (!_orderedCols.Contains(column))
-                _orderedCols.Enqueue(column);
-
-            this.UpdateFilteredData();
-        }
-
-        protected void HandleContains(DataColumn<T> column, string text)
-        {
-            var item = new Tuple<DataColumn<T>, ColumnFilterArgs>(column, new ContainsColumnFilterArgs(text));
-
-            if (!_colFilters.Contains(item))
+            if (column.TryDisableFilter(filter))
             {
-                _colFilters.Enqueue(item);
-                column.Filter = Filters.Contains();
                 this.UpdateFilteredData();
             }
+            else
+            {
+                filter.OnApply((args) =>
+                {
+                    column.ActiveFilters.Add(new Utils.ActiveFilter<TItem>(filter, args));
+
+                    this.UpdateFilteredData();
+                });
+            }
+        }
+
+        protected void HandleSortAZ(DataColumn<TItem> column)
+        {
+            column.Sorting = Sorting.Ascending;
+            column.Sorted = true;
+
+            if (!_orderedSortCols.Contains(column))
+                _orderedSortCols.Enqueue(column);
+
+            this.UpdateFilteredData();
+        }
+
+        protected void HandleSortZA(DataColumn<TItem> column)
+        {
+            column.Sorting = Sorting.Descending;
+            column.Sorted = true;
+
+            if (!_orderedSortCols.Contains(column))
+                _orderedSortCols.Enqueue(column);
+
+            this.UpdateFilteredData();
         }
 
         private void UpdateFilteredData()
         {
-            var filterOrderLst = _orderedCols.ToList();
+            this.OnBeforeTableDataRead?.Invoke(this, new EventArgs());
 
-            IQueryable<T> query = null;
+            var filterOrderLst = _orderedSortCols.ToList();
+
+            IQueryable<TItem> query = null;
             if (filterOrderLst.Count > 0)
             {
                 if (filterOrderLst[0].Sorting == Sorting.Ascending)
@@ -113,11 +125,11 @@ namespace BlazingTables.Component
                 {
                     if (col.Sorting == Sorting.Ascending)
                     {
-                        query = ((IOrderedQueryable<T>)query).ThenBy(x => col.Value(x));
+                        query = ((IOrderedQueryable<TItem>)query).ThenBy(x => col.Value(x));
                     }
                     else if (col.Sorting == Sorting.Descending)
                     {
-                        query = ((IOrderedQueryable<T>)query).ThenByDescending(x => col.Value(x));
+                        query = ((IOrderedQueryable<TItem>)query).ThenByDescending(x => col.Value(x));
                     }
                 }
             }
@@ -126,19 +138,19 @@ namespace BlazingTables.Component
                 query = _data.AsQueryable();
             }
 
+            var filteredData = query.ToList();
 
-          
-            var colFiltersLst = _colFilters.ToList();
-            foreach (var col in colFiltersLst)
+            foreach (var column in columns.OfType<DataColumn<TItem>>())
             {
-                query = query.Where(x => col.Item1.Filter(col.Item1.Value(x), col.Item2));
+                foreach (var activeFilter in column.ActiveFilters)
+                {
+                    filteredData = activeFilter.Filter.FilterHandler.Apply(column, filteredData, activeFilter.FilterArgs);
+                }
             }
 
-            this.FilteredData = query.ToList();
+            this.FilteredData = filteredData;
 
             this.StateHasChanged();
         }
-
-       
     }
 }

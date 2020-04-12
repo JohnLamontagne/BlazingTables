@@ -1,11 +1,32 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
+    <PackageId>BlazingTables</PackageId>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <OutputType>Library</OutputType>
+    <Authors>John LaMontagne</Authors>
+    <Company>John LaMontagne</Company>
+    <Copyright>(c) John LaMontagne</Copyright>
+    <PackageProjectUrl>https://github.com/JohnLamontagne/BlazingTables/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/JohnLamontagne/BlazingTables/</RepositoryUrl>
+    <RepositoryType>Github</RepositoryType>
+    <IsPackable>true</IsPackable>
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <Version>1.0.2</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Description>Freaking simple bindable, filterable, sortable, and customizable table for Blazor built with Bootstrap.</Description>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="System.Linq.Dynamic.Core" Version="1.0.20" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+  </ItemGroup>
 </Project>

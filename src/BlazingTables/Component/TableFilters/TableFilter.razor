@@ -1,0 +1,42 @@
+﻿@using BlazingTables.Utils;
+@typeparam TItem
+
+<CascadingValue Value="this">
+    @ChildContent
+</CascadingValue>
+
+@code {
+    private FilterInputForm<TItem> inputForm;
+
+    [CascadingParameter]
+    private BlazingTable<TItem> Parent { get; set; }
+
+    [Parameter]
+    public FilterHandler<TItem> FilterHandler { get; set; }
+
+    [Parameter]
+    public RenderFragment ChildContent { get; set; }
+
+    public bool Active { get; set; }
+
+    /// <summary>
+    /// The name of this filter. This is used to set the menu entry in the column dropdown.
+    /// </summary>
+    [Parameter]
+    public string Name { get; set; }
+
+    internal void OnApply(Action<FilterArgs> callback)
+    {
+        inputForm.Show(callback);
+    }
+
+    protected override void OnInitialized()
+    {
+        this.Parent.AddFilter(this);
+    }
+
+    internal void RegisterInputForm(FilterInputForm<TItem> form)
+    {
+        this.inputForm = form;
+    }
+}

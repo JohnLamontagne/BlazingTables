@@ -1,0 +1,8 @@
+﻿@using BlazingTables.Utils.Filters
+@typeparam TItem
+
+<TableFilter Name="Equals" TItem="TItem" FilterHandler="new EqualsFilterHandler<TItem>()">
+    <FilterInputForm TItem="TItem" Title="Equals">
+        <FilterInput TItem="TItem" FieldName="Equals"></FilterInput>
+    </FilterInputForm>
+</TableFilter>

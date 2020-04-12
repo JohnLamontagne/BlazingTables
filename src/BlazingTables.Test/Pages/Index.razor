@@ -1,0 +1,56 @@
+﻿@using BlazingTables.Utils.Filters
+@using BlazingTables.Component.TableFilters
+@using BlazingTables.Component
+@using BlazingTables.Test.Data
+@page "/"
+
+<BlazingTable @ref="table" Id="testTable" TItem=TestData
+              Data="@testData" RowsPerPage="3">
+    <DataColumn TItem=TestData Header="Name" Value="@((record) => record.Name)"></DataColumn>
+    <CustomColumn TItem=TestData Header="Test Col">
+        <button class="btn btn-primary" @onclick="() => HandleEditItem(context)">Edit Item</button>
+    </CustomColumn>
+    <DataColumn TItem=TestData Header="Age" Value="@((record) => record.Age)"></DataColumn>
+
+    <ContainsTextFilter TItem="TestData"></ContainsTextFilter>
+    <EqualsTextFilter TItem="TestData"></EqualsTextFilter>
+</BlazingTable>
+
+<button @onclick="HandleClick">Test</button>
+
+@code {
+    private List<TestData> testData { get; set; } = new List<TestData>();
+    BlazingTable<TestData> table;
+    protected override void OnInitialized()
+    {
+        this.testData.Add(new TestData() { Name = "E", Age = 4 });
+        this.testData.Add(new TestData() { Name = "D", Age = 2 });
+        this.testData.Add(new TestData() { Name = "C", Age = 55 });
+        this.testData.Add(new TestData() { Name = "B", Age = 1 });
+        this.testData.Add(new TestData() { Name = "A", Age = 23 });
+        this.testData.Add(new TestData() { Name = "A", Age = 33 });
+        this.testData.Add(new TestData() { Name = "A", Age = 2 });
+        this.testData.Add(new TestData() { Name = "A", Age = 44 });
+        this.testData.Add(new TestData() { Name = "A", Age = 12 });
+        this.testData.Add(new TestData() { Name = "E", Age = 4 });
+        this.testData.Add(new TestData() { Name = "D", Age = 2 });
+        this.testData.Add(new TestData() { Name = "C", Age = 55 });
+        this.testData.Add(new TestData() { Name = "B", Age = 1 });
+        this.testData.Add(new TestData() { Name = "A", Age = 23 });
+        this.testData.Add(new TestData() { Name = "A", Age = 33 });
+        this.testData.Add(new TestData() { Name = "A", Age = 2 });
+        this.testData.Add(new TestData() { Name = "A", Age = 44 });
+        this.testData.Add(new TestData() { Name = "A", Age = 12 });
+    }
+
+    void HandleEditItem(TestData item)
+    {
+        System.Diagnostics.Debug.Print(item.Name);
+    }
+
+    private void HandleClick()
+    {
+        this.testData = new List<TestData>();
+        table.Update();
+    }
+}

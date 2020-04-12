@@ -1,7 +1,14 @@
-﻿@using BlazingTables.Utils; 
+﻿@using BlazingTables.Utils;
+@using BlazingTables.Component.TableFilters;
+
 @typeparam TItem
+@implements IColumn<TItem>
 
 @code {
+    internal List<ActiveFilter<TItem>> ActiveFilters { get; } = new List<ActiveFilter<TItem>>();
+
+    public IReadOnlyList<FilterHandler<TItem>> AppliedFilters { get => this.ActiveFilters.Select(aF => aF.Filter.FilterHandler).ToList(); }
+
     [CascadingParameter]
     private BlazingTable<TItem> Parent { get; set; }
 
@@ -17,14 +24,30 @@
     [Parameter]
     public bool Filterable { get; set; } = true;
 
-    public Func<object, ColumnFilterArgs, bool> Filter { get; set; }
-
     public Sorting Sorting { get; set; } = Sorting.None;
 
-    public bool Sorted { get; protected set; }
+    public bool Sorted { get; internal set; }
 
     protected override void OnInitialized()
     {
         this.Parent.AddColumn(this);
+    }
+
+    public bool IsFilterActive(TableFilter<TItem> filter)
+    {
+        return this.ActiveFilters.Any(a => a.Filter == filter);
+    }
+
+    public bool TryDisableFilter(TableFilter<TItem> filter)
+    {
+        var match = this.ActiveFilters.Where(a => a.Filter == filter).FirstOrDefault();
+
+        if (match != null)
+        {
+            this.ActiveFilters.Remove(match);
+            return true;
+        }
+
+        return false;
     }
 }

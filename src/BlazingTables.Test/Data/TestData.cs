@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace BlazingTables.Data
+namespace BlazingTables.Test.Data
 {
-    public class Test
+    public class TestData
     {
         public string Name { get; set; }
 
