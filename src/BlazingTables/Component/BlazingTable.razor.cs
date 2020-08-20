@@ -9,6 +9,9 @@ namespace BlazingTables.Component
 {
     public class BlazingTableBase<TItem> : ComponentBase
     {
+        /// <summary>
+        /// The current active data in the table after filtering is applied.
+        /// </summary>
         public IEnumerable<TItem> FilteredData { get; protected set; }
 
         protected List<IColumn<TItem>> columns = new List<IColumn<TItem>>();
@@ -19,16 +22,40 @@ namespace BlazingTables.Component
 
         private List<TItem> _data = new List<TItem>();
 
-        private Queue<DataColumn<TItem>> _orderedSortCols = new Queue<DataColumn<TItem>>();
+        private List<DataColumn<TItem>> _orderedSortCols = new List<DataColumn<TItem>>();
 
         /// <summary>
-        /// Event which provides the opportunity to custom handle data filtering & paging
-        /// by updating the <see cref="Data"/> field with the data which will be displayed in the table.
-        /// In this case, <see cref="Update"/> invocation is not required after setting <see cref="Data"/>.
+        /// Enables an informational footer in the bottom left corner of the t
+        /// table that displays currently viewed items along with total number of items when set to <see cref="true" />.
         /// </summary>
         [Parameter]
-        public EventHandler<EventArgs> OnBeforeTableDataRead { get; set; }
+        public bool InfoFooterEnabled { get; set; } = true;
 
+        /// <summary>
+        /// Enables pagination for the table when set to true.
+        /// </summary>
+        [Parameter]
+        public bool PaginationEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Raised whenever the table page changes if <see cref="PaginationEnabled"/> is set to true.
+        /// </summary>
+        public EventHandler<EventArgs> PageChanged { get; set; }
+
+        /// <summary>
+        /// Raised whenever a new filter is applied to a <see cref="DataColumn{TItem}"/> in the table.
+        /// </summary>
+        public EventHandler<EventArgs> ActiveFiltersChanged { get; set; }
+
+        /// <summary>
+        /// If specified, disables <see cref="Data"></see> and instead polls for information from handler.
+        /// </summary>
+        [Parameter]
+        public Func<List<TItem>> ReadData { get; set; }
+
+        /// <summary>
+        /// Data source for the table.
+        /// </summary>
         [Parameter]
         public IReadOnlyList<TItem> Data
         {
@@ -39,9 +66,17 @@ namespace BlazingTables.Component
             }
         }
 
+        /// <summary>
+        /// Amount of rows to be displayed in the table.
+        /// If <see cref="PaginationEnabled"/> is set to true, any remaining rows after this limit will be moved to a successive page.
+        /// </summary>
         [Parameter]
         public int RowsPerPage { get; set; } = 25;
 
+        /// <summary>
+        /// Removes the specified item as a row in the table.
+        /// </summary>
+        /// <param name="row">Item to be removed</param>
         public void Remove(TItem row)
         {
             if (_data.Contains(row))
@@ -52,6 +87,10 @@ namespace BlazingTables.Component
             }
         }
 
+        /// <summary>
+        /// Adds the specified item to the table & data source.
+        /// </summary>
+        /// <param name="row">Item to be added</param>
         public void Add(TItem row)
         {
             _data.Add(row);
@@ -59,6 +98,9 @@ namespace BlazingTables.Component
             this.UpdateFilteredData();
         }
 
+        /// <summary>
+        /// Tells the table to update with any new data.
+        /// </summary>
         public void Update()
         {
             this.UpdateFilteredData();
@@ -79,33 +121,58 @@ namespace BlazingTables.Component
                     this.UpdateFilteredData();
                 });
             }
+
+            this.ActiveFiltersChanged?.Invoke(this, new EventArgs());
         }
 
         protected void HandleSortAZ(DataColumn<TItem> column)
         {
-            column.Sorting = Sorting.Ascending;
-            column.Sorted = true;
+            if (column.Sorting == Sorting.Ascending && column.Sorted)
+            {
+                column.Sorting = Sorting.None;
+                column.Sorted = false;
 
-            if (!_orderedSortCols.Contains(column))
-                _orderedSortCols.Enqueue(column);
+                _orderedSortCols.Remove(column);
+            }
+            else
+            {
+                column.Sorting = Sorting.Ascending;
+                column.Sorted = true;
+
+                if (!_orderedSortCols.Contains(column))
+                    _orderedSortCols.Add(column);
+            }
 
             this.UpdateFilteredData();
         }
 
         protected void HandleSortZA(DataColumn<TItem> column)
         {
-            column.Sorting = Sorting.Descending;
-            column.Sorted = true;
+            if (column.Sorting == Sorting.Descending && column.Sorted)
+            {
+                column.Sorting = Sorting.None;
+                column.Sorted = false;
 
-            if (!_orderedSortCols.Contains(column))
-                _orderedSortCols.Enqueue(column);
+                _orderedSortCols.Remove(column);
+            }
+            else
+            {
+                column.Sorting = Sorting.Descending;
+                column.Sorted = true;
+
+                if (!_orderedSortCols.Contains(column))
+                    _orderedSortCols.Add(column);
+            }
 
             this.UpdateFilteredData();
         }
 
         private void UpdateFilteredData()
         {
-            this.OnBeforeTableDataRead?.Invoke(this, new EventArgs());
+            if (this.ReadData != null)
+            {
+                _data = this.ReadData();
+            }
 
             var filterOrderLst = _orderedSortCols.ToList();
 

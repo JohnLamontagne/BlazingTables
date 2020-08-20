@@ -3,9 +3,40 @@
 @using BlazingTables.Component
 @using BlazingTables.Test.Data
 @page "/"
+@inject WeatherForecastService weatherService
 
-<BlazingTable @ref="table" Id="testTable" TItem=TestData
-              Data="@testData" RowsPerPage="3">
+<h2>Weather Forecast Data</h2>
+<BlazingTable @ref="weatherTable" Id="testTable" TItem=WeatherForecast
+              Data="@weatherData" RowsPerPage="10" ReadData="HandleGetWeatherData">
+    <DataColumn TItem=WeatherForecast Header="Day" Value="@((record) => record.Date.ToShortDateString())"></DataColumn>
+    <CustomColumn TItem=WeatherForecast Header="Forecast">
+        <center>
+            @switch (context.Summary)
+            {
+                case WeatherForecast.Description.Sunny:
+                    <img width="32" height="32" src="./images/sunny.png" />
+                    break;
+
+                case WeatherForecast.Description.Rainy:
+                    <img width="32" height="32" src="./images/rain.png" />
+                    break;
+
+                case WeatherForecast.Description.Overcast:
+                    <img width="32" height="32" src="./images/cloudy.png" />
+                    break;
+            }
+        </center>
+    </CustomColumn>
+    <DataColumn TItem=WeatherForecast Header="C" Value="@((record) => record.TemperatureF)"></DataColumn>
+    <DataColumn TItem=WeatherForecast Header="F" Value="@((record) => record.TemperatureC)"></DataColumn>
+
+    <ContainsTextFilter TItem="WeatherForecast"></ContainsTextFilter>
+    <EqualsTextFilter TItem="WeatherForecast"></EqualsTextFilter>
+</BlazingTable>
+
+<h2>Test Data</h2>
+<BlazingTable @ref="testDataTable" Id="testTable" TItem=TestData
+              Data="@testData" RowsPerPage="5">
     <DataColumn TItem=TestData Header="Name" Value="@((record) => record.Name)"></DataColumn>
     <CustomColumn TItem=TestData Header="Test Col">
         <button class="btn btn-primary" @onclick="() => HandleEditItem(context)">Edit Item</button>
@@ -16,11 +47,14 @@
     <EqualsTextFilter TItem="TestData"></EqualsTextFilter>
 </BlazingTable>
 
-<button @onclick="HandleClick">Test</button>
-
+<div>Icons made by <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
 @code {
-    private List<TestData> testData { get; set; } = new List<TestData>();
-    BlazingTable<TestData> table;
+    private List<TestData> testData = new List<TestData>();
+    private List<WeatherForecast> weatherData = new List<WeatherForecast>();
+
+    BlazingTable<TestData> testDataTable;
+    BlazingTable<WeatherForecast> weatherTable;
+
     protected override void OnInitialized()
     {
         this.testData.Add(new TestData() { Name = "E", Age = 4 });
@@ -43,6 +77,14 @@
         this.testData.Add(new TestData() { Name = "A", Age = 12 });
     }
 
+    List<WeatherForecast> HandleGetWeatherData()
+    {
+        if (this.weatherData.Count <= 0)
+            this.weatherData = weatherService.GetForecastAsync(DateTime.Now).Result.ToList();
+
+        return this.weatherData;
+    }
+
     void HandleEditItem(TestData item)
     {
         System.Diagnostics.Debug.Print(item.Name);
@@ -51,6 +93,6 @@
     private void HandleClick()
     {
         this.testData = new List<TestData>();
-        table.Update();
+        testDataTable.Update();
     }
 }

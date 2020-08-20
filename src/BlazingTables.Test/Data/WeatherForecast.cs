@@ -10,6 +10,13 @@ namespace BlazingTables.Test.Data
 
         public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 
-        public string Summary { get; set; }
+        public Description Summary { get; set; }
+
+        public enum Description
+        {
+            Sunny,
+            Rainy,
+            Overcast
+        }
     }
 }

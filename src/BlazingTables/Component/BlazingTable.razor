@@ -23,8 +23,8 @@
                                             <button class="btn dropdown-toggle" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                                             </button>
                                             <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton">
-                                                <a class="dropdown-item" href="#" @onclick="(() => HandleSortAZ(dataColumn))">Sort A-Z [Asc] <i class="fas fa-check" style="@(!dataColumn.Sorted || dataColumn.Sorting != Sorting.Ascending ? "display: none;" : string.Empty)"></i></a>
-                                                <a class="dropdown-item" href="#" @onclick="(() => HandleSortZA(dataColumn))">Sort Z-A [Desc] <i class="fas fa-check" style="@(!dataColumn.Sorted || dataColumn.Sorting != Sorting.Descending ? "display: none;" : string.Empty)"></i></a>
+                                                <a class="dropdown-item" @onclick="(() => HandleSortAZ(dataColumn))">Sort A-Z [Asc] <i class="fas fa-check" style="@(!dataColumn.Sorted || dataColumn.Sorting != Sorting.Ascending ? "display: none;" : string.Empty)"></i></a>
+                                                <a class="dropdown-item" @onclick="(() => HandleSortZA(dataColumn))">Sort Z-A [Desc] <i class="fas fa-check" style="@(!dataColumn.Sorted || dataColumn.Sorting != Sorting.Descending ? "display: none;" : string.Empty)"></i></a>
                                                 <div class="dropdown-divider"></div>
 
                                                 @foreach (var filter in this.filters)
@@ -53,7 +53,7 @@
                                 }
                                 else if (column is CustomColumn<TItem>)
                                 {
-                                    @((column as CustomColumn<TItem>).ChildContent(row));
+                                    <td>@((column as CustomColumn<TItem>).ChildContent(row))</td>
                                 }
                             }
                         </tr>
@@ -64,39 +64,45 @@
         </row>
         <row>
             <div class="col-sm">
-                <a>Displaying @((this.curPage - 1) * (this.RowsPerPage)) - @(this.curPage * this.RowsPerPage) of @(this.FilteredData.Count()) items</a>
+                @if (this.InfoFooterEnabled)
+                {
+                    <a>Displaying @(Math.Max((this.curPage - 1) * (this.RowsPerPage), 1)) - @(Math.Min(this.curPage * this.RowsPerPage, this.FilteredData.Count())) of @(this.FilteredData.Count()) items</a>
+                }
             </div>
             <div class="col-sm">
-                <nav aria-label="Blazing page navigation">
-                    <ul class="pagination justify-content-end">
-                        <li class="page-item @(this.curPage <= 1 ? "disabled" : string.Empty)">
-                            <a class="page-link" href="#" tabindex="-1" @onclick="HandlePreviousPage">Previous</a>
-                        </li>
-                        @if (this.curPage > 1)
-                        {
-                            if (this.curPage > 2 && this.curPage + 3 > (this.FilteredData.Count() / this.RowsPerPage))
+                @if (this.PaginationEnabled)
+                {
+                    <nav aria-label="Blazing page navigation">
+                        <ul class="pagination justify-content-end">
+                            <li class="page-item @(this.curPage <= 1 ? "disabled" : string.Empty)">
+                                <a class="page-link" tabindex="-1" @onclick="HandlePreviousPage">Previous</a>
+                            </li>
+                            @if (this.curPage > 1)
                             {
-                                var backTwoPageNum = this.curPage - 2;
-                                <li class="page-item"><a class="page-link" href="#" @onclick="() => HandleSetPage(backTwoPageNum)">@(backTwoPageNum)</a></li>
+                                if (this.curPage > 2 && this.curPage + 3 > (this.FilteredData.Count() / this.RowsPerPage))
+                                {
+                                    var backTwoPageNum = this.curPage - 2;
+                                    <li class="page-item"><a class="page-link" @onclick="() => HandleSetPage(backTwoPageNum)">@(backTwoPageNum)</a></li>
+                                }
+                                var backOnePageNum = this.curPage - 1;
+                                <li class="page-item"><a class="page-link" @onclick="() => HandleSetPage(backOnePageNum)">@(backOnePageNum)</a></li>
+
                             }
-                            var backOnePageNum = this.curPage - 1;
-                            <li class="page-item"><a class="page-link" href="#" @onclick="() => HandleSetPage(backOnePageNum)">@(backOnePageNum)</a></li>
+                            @for (int i = 0; i <= 3; i++)
+                            {
+                                if (this.curPage + i > ((this.FilteredData.Count() / this.RowsPerPage) + 1))
+                                    break;
 
-                        }
-                        @for (int i = 0; i <= 3; i++)
-                        {
-                            if (this.curPage + i > (this.FilteredData.Count() / this.RowsPerPage))
-                                break;
+                                var pageNum = this.curPage + i;
 
-                            var pageNum = this.curPage + i;
-
-                            <li class="page-item @(i == 0 ? "active" : string.Empty)"><a class="page-link" href="#" @onclick="() => HandleSetPage(pageNum)">@pageNum</a></li>
-                        }
-                        <li class="page-item @(this.curPage + 1 > (this.FilteredData.Count() / this.RowsPerPage) ? "disabled" : string.Empty)">
-                            <a class="page-link" href="#" @onclick="HandleNextPage">Next</a>
-                        </li>
-                    </ul>
-                </nav>
+                                <li class="page-item @(i == 0 ? "active" : string.Empty)"><a class="page-link" @onclick="() => HandleSetPage(pageNum)">@pageNum</a></li>
+                            }
+                            <li class="page-item @(this.curPage + 1 > ((this.FilteredData.Count() / this.RowsPerPage) + 1) ? "disabled" : string.Empty)">
+                                <a class="page-link" tabindex="1" @onclick="HandleNextPage">Next</a>
+                            </li>
+                        </ul>
+                    </nav>
+                }
             </div>
         </row>
     </div>
@@ -116,6 +122,8 @@
     {
         this.curPage = pageNum;
 
+        this.PageChanged?.Invoke(this, new EventArgs());
+
         StateHasChanged();
     }
 
@@ -124,19 +132,28 @@
         if (this.curPage > 1)
             this.curPage--;
 
+        this.PageChanged?.Invoke(this, new EventArgs());
+
         StateHasChanged();
     }
 
     private void HandleNextPage()
     {
-        if (this.curPage < (this.FilteredData.Count() / this.RowsPerPage))
+        if (this.curPage < ((this.FilteredData.Count() / this.RowsPerPage) + 1))
             this.curPage++;
+
+        this.PageChanged?.Invoke(this, new EventArgs());
 
         StateHasChanged();
     }
 
     protected override void OnInitialized()
     {
+        if (this.ReadData != null)
+        {
+            this.Data = ReadData();
+        }
+
         this.FilteredData = this.Data;
     }
 
